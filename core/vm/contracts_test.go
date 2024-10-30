@@ -20,11 +20,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/holiman/uint256"
 )
 
 // precompiledTest defines the input/output pairs for precompiled contract tests.
@@ -57,6 +60,7 @@ var allPrecompiles = map[common.Address]PrecompiledContract{
 	common.BytesToAddress([]byte{8}):    &bn256PairingIstanbul{},
 	common.BytesToAddress([]byte{9}):    &blake2F{},
 	common.BytesToAddress([]byte{0x0a}): &kzgPointEvaluation{},
+	common.BytesToAddress([]byte{0x10}): &statefulPrecompile{},
 
 	common.BytesToAddress([]byte{0x0f, 0x0a}): &bls12381G1Add{},
 	common.BytesToAddress([]byte{0x0f, 0x0b}): &bls12381G1Mul{},
@@ -98,7 +102,7 @@ func testPrecompiled(addr string, test precompiledTest, t *testing.T) {
 	in := common.Hex2Bytes(test.Input)
 	gas := p.RequiredGas(in)
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
-		if res, _, err := RunPrecompiledContract(p, in, gas, nil); err != nil {
+		if res, _, err := RunPrecompiledContract(p, in, gas, nil, nil); err != nil {
 			t.Error(err)
 		} else if common.Bytes2Hex(res) != test.Expected {
 			t.Errorf("Expected %v, got %v", test.Expected, common.Bytes2Hex(res))
@@ -120,7 +124,7 @@ func testPrecompiledOOG(addr string, test precompiledTest, t *testing.T) {
 	gas := p.RequiredGas(in) - 1
 
 	t.Run(fmt.Sprintf("%s-Gas=%d", test.Name, gas), func(t *testing.T) {
-		_, _, err := RunPrecompiledContract(p, in, gas, nil)
+		_, _, err := RunPrecompiledContract(p, in, gas, nil, nil)
 		if err.Error() != "out of gas" {
 			t.Errorf("Expected error [out of gas], got [%v]", err)
 		}
@@ -137,7 +141,7 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 	in := common.Hex2Bytes(test.Input)
 	gas := p.RequiredGas(in)
 	t.Run(test.Name, func(t *testing.T) {
-		_, _, err := RunPrecompiledContract(p, in, gas, nil)
+		_, _, err := RunPrecompiledContract(p, in, gas, nil, nil)
 		if err.Error() != test.ExpectedError {
 			t.Errorf("Expected error [%v], got [%v]", test.ExpectedError, err)
 		}
@@ -147,6 +151,44 @@ func testPrecompiledFailure(addr string, test precompiledFailureTest, t *testing
 			t.Errorf("Precompiled %v modified input data", addr)
 		}
 	})
+}
+
+func TestStatefulPrecompile(t *testing.T) {
+	p := allPrecompiles[common.HexToAddress("0x10")]
+	db := state.NewDatabaseForTesting()
+	stateDB, _ := state.New(common.Hash{}, db)
+	contract := NewContract(AccountRef(common.Address{}), AccountRef(common.Address{}), uint256.NewInt(0), 1000000)
+	in := contract.Address().Bytes()
+	gas := p.RequiredGas(in)
+
+	precompile := &statefulPrecompile{}
+
+	{
+		t.Logf("Here")
+		output, _, err := RunPrecompiledContract(p, in, gas, stateDB, nil)
+		if err != nil {
+			t.Fatalf("Stateful precompile run failed: %v", err)
+		}
+
+		counter := new(big.Int).SetBytes(output)
+		if counter.Cmp(big.NewInt(1)) != 0 {
+			t.Fatalf("Expected counter to be 1, got %v", counter)
+		}
+		t.Logf("Precompile test passed, counter: %v", counter)
+	}
+
+	{
+		output, err := precompile.Run(contract.Address().Bytes(), stateDB)
+		if err != nil {
+			t.Fatalf("Stateful precompile run failed: %v", err)
+		}
+
+		counter := new(big.Int).SetBytes(output)
+		if counter.Cmp(big.NewInt(2)) != 0 {
+			t.Fatalf("Expected counter to be 2, got %v", counter)
+		}
+		t.Logf("Precompile test passed, counter: %v", counter)
+	}
 }
 
 func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
@@ -169,7 +211,7 @@ func benchmarkPrecompiled(addr string, test precompiledTest, bench *testing.B) {
 		bench.ResetTimer()
 		for i := 0; i < bench.N; i++ {
 			copy(data, in)
-			res, _, err = RunPrecompiledContract(p, data, reqGas, nil)
+			res, _, err = RunPrecompiledContract(p, data, reqGas, nil, nil)
 		}
 		bench.StopTimer()
 		elapsed := uint64(time.Since(start))
