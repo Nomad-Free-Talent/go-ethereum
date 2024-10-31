@@ -1284,6 +1284,9 @@ func (c *statefulPrecompile) Run(input []byte, stateDB StateDB) ([]byte, error) 
 	newCounter := new(big.Int).Add(new(big.Int).SetBytes(counter.Bytes()), big.NewInt(1))
 	stateDB.SetState(address, counterKey, common.BigToHash(newCounter))
 
+	resultArray := make([]byte, 32)
+	newCounter.FillBytes(resultArray)
+
 	// Return the updated counter as output
-	return newCounter.Bytes(), nil
+	return resultArray, nil
 }
