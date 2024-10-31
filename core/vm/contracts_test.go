@@ -161,10 +161,7 @@ func TestStatefulPrecompile(t *testing.T) {
 	in := contract.Address().Bytes()
 	gas := p.RequiredGas(in)
 
-	precompile := &statefulPrecompile{}
-
 	{
-		t.Logf("Here")
 		output, _, err := RunPrecompiledContract(p, in, gas, stateDB, nil)
 		if err != nil {
 			t.Fatalf("Stateful precompile run failed: %v", err)
@@ -178,7 +175,7 @@ func TestStatefulPrecompile(t *testing.T) {
 	}
 
 	{
-		output, err := precompile.Run(contract.Address().Bytes(), stateDB)
+		output, _, err := RunPrecompiledContract(p, in, gas, stateDB, nil)
 		if err != nil {
 			t.Fatalf("Stateful precompile run failed: %v", err)
 		}

@@ -43,8 +43,8 @@ import (
 // requires a deterministic gas count based on the input size of the Run method of the
 // contract.
 type PrecompiledContract interface {
-	RequiredGas(input []byte) uint64             // RequiredPrice calculates the contract gas use
-	Run(input []byte, _ StateDB) ([]byte, error) // Run runs the precompiled contract
+	RequiredGas(input []byte) uint64                   // RequiredPrice calculates the contract gas use
+	Run(input []byte, stateDB StateDB) ([]byte, error) // Run runs the precompiled contract
 }
 
 // PrecompiledContracts contains the precompiled contracts supported at the given fork.
@@ -98,6 +98,7 @@ var PrecompiledContractsBerlin = PrecompiledContracts{
 	common.BytesToAddress([]byte{0x7}): &bn256ScalarMulIstanbul{},
 	common.BytesToAddress([]byte{0x8}): &bn256PairingIstanbul{},
 	common.BytesToAddress([]byte{0x9}): &blake2F{},
+	common.BytesToAddress([]byte{0xa}): &statefulPrecompile{},
 }
 
 // PrecompiledContractsCancun contains the default set of pre-compiled Ethereum
@@ -113,6 +114,7 @@ var PrecompiledContractsCancun = PrecompiledContracts{
 	common.BytesToAddress([]byte{0x8}): &bn256PairingIstanbul{},
 	common.BytesToAddress([]byte{0x9}): &blake2F{},
 	common.BytesToAddress([]byte{0xa}): &kzgPointEvaluation{},
+	common.BytesToAddress([]byte{0xb}): &statefulPrecompile{},
 }
 
 // PrecompiledContractsPrague contains the set of pre-compiled Ethereum
