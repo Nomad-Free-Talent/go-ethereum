@@ -44,4 +44,14 @@ The `callPrecompile` method receives an address of another contract as an input 
 
 ## Additional notes
 
+### Logging and Debugging
+To log the data from geth, we can use the `log` module by adding `"github.com/ethereum/go-ethereum/log"` to the import statement.<br>
+The `log.Info` method might be useful for logging.
 
+### Change the hardforks
+To test with the lower version of hardforks, we can update the `genesis.json` file. Change the `***Block` field under the `config` field from `0` to large enough number would block the specific hardforks.
+
+### Possible updates
+Here're the checklists for any possible update of the current implementation.
+- Instead of directly update the `Run` method definition of the `PrecompiledContract` interface on `core/vm/contracts.go` file, we can introduce `Polymorphism`.
+- We should avoid using hardcoded `my-counter` key. Maybe we can split the `input`; first 20 bytes for the address and the remaining bytes for key.
