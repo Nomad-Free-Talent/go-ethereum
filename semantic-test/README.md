@@ -8,6 +8,7 @@ The `statefulPrecompile` is deployed to the following addresses for the hardfork
 | Prague   | 0x14    |
 | Cancun   | 0x0b    |
 | Berlin   | 0x0a    |
+
 The smart contract on the `StatefulPrecompile.sol` file is written for the `Prague` hardfork and it uses `0x14` to direct the `statefulPrecompie` contract.
 To test this smart contract on chain, we need to follow these steps.
 - Build the go-ethereum project
